@@ -1,7 +1,8 @@
-use std::fs::File;
-use std::io::Read;
+//use std::fs::File;
+//use std::io::Read;
 
 mod instruction;
+use crate::instruction::*;
 
 const MEMORY_SIZE: usize = 4096;
 const REG_COUNT: usize = 16;
@@ -46,9 +47,8 @@ pub struct Emulator {
 
 
 fn main() {
-    if 2 == 0x1 {
-    println!("Hello, world!");
-    }
+    let x: OpCode = instruction::OpCode(0x8000);
+    println!("{:?}", Instruction::new(x));
 }
 
 fn load_file(path: String) {

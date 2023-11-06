@@ -2,7 +2,9 @@
 pub type Address = u16;
 pub type Register = usize;
 
-impl Opcode {
+pub struct OpCode(pub u16);
+
+impl OpCode {
     // Return 0x0X00 from opcode
     fn oxoo(&self) -> usize {
         ((self.0 & 0x0F00) >> 8) as usize
@@ -31,51 +33,52 @@ impl Opcode {
 
 
 // Instructions for chip-8
+#[derive(Debug)]
 pub enum Instruction {
-    ClearDisplay, // 00E0 - CLS
-    Return,       // 00EE - RET
+    ClearDisplay,                       // 00E0 - CLS
+    Return,                             // 00EE - RET
 
     Jump(Address),                      // 1NNN - JP addr
     Call(Address),                      // 2NNN - CALL addr
-    SkipEqual(Register, u8),            // 3XNN - SE Vx, byte
-    SkipNotEqual(Register, u8),         // 4XNN - SNE Vx, byte
-    SkipEqualXY(Register, Register),    // 5XY0 - SE Vx, Vy
-    Load(Register, u8),                 // 6XNN - LD Vx, byte
-    Add(Register, u8),                  // 7XNN - ADD Vx, byte
+    SkipIfEqualsByte(Register, u8),            // 3XNN - SE Vx, byte
+    SkipIfNotEqualsByte(Register, u8),         // 4XNN - SNE Vx, byte
+    SkipIfEqual(Register, Register),    // 5XY0 - SE Vx, Vy
+    LoadByte(Register, u8),                 // 6XNN - LD Vx, byte
+    AddByte(Register, u8),                  // 7XNN - ADD Vx, byte
 
     Move(Register, Register),           // 8XY0 - LD Vx, Vy
     Or(Register, Register),             // 8XY1 - OR Vx, Vy
     And(Register, Register),            // 8XY2 - AND Vx, Vy
     Xor(Register, Register),            // 8XY3 - XOR Vx, Vy
-    AddXY(Register, Register),          // 8XY4 - ADD Vx, Vy
-    SubXY(Register, Register),          // 8XY5 - SUB Vx, Vy
+    Add(Register, Register),          // 8XY4 - ADD Vx, Vy
+    Sub(Register, Register),          // 8XY5 - SUB Vx, Vy
     ShiftRight(Register),               // 8XY6 - SHR Vx {, Vy}
-    SubYX(Register, Register),          // 8XY7 - SUBN Vx, Vy
+    ReverseSub(Register, Register),          // 8XY7 - SUBN Vx, Vy
     ShiftLeft(Register),                // 8XYE - SHL Vx {, Vy}
 
-    SkipNotEqualXY(Register, Register), // 9XY0 - SNE Vx, Vy
+    SkipIfNotEqual(Register, Register), // 9XY0 - SNE Vx, Vy
     LoadI(Address),                     // ANNN - LD I, addr
-    JumpV0(Address),                    // BNNN - JP V0, addr
+    JumpPlusZero(Address),                    // BNNN - JP V0, addr
     Random(Register, u8),               // CXNN - RND Vx, byte
     Draw(Register, Register, u8),       // DXYN - DRW Vx, Vy, nibble
 
-    SkipKeyPressed(Register),           // EX9E - SKP Vx
-    SkipKeyNotPressed(Register),        // EXA1 - SKNP Vx
+    SkipIfPressed(Register),           // EX9E - SKP Vx
+    SkipIfNotPressed(Register),        // EXA1 - SKNP Vx
 
-    LoadDelayTimer(Register),                // FX07 - LD Vx, DT
-    WaitForKeyPress(Register),             // FX0A - LD Vx, K
-    SetDelayTimer(Register),                 // FX15 - LD DT, Vx
-    SetSoundTimer(Register),                 // FX18 - LD ST, Vx
+    LoadDelayTimer(Register),           // FX07 - LD Vx, DT
+    WaitForKeyPress(Register),          // FX0A - LD Vx, K
+    SetDelayTimer(Register),            // FX15 - LD DT, Vx
+    SetSoundTimer(Register),            // FX18 - LD ST, Vx
     AddI(Register),                     // FX1E - ADD I, Vx
-    LoadSprite(Register),                 // FX29 - LD F, Vx
+    LoadSprite(Register),               // FX29 - LD F, Vx
     StoreBCD(Register),                 // FX33 - LD B, Vx
     StoreRegisters(Register),           // FX55 - LD [I], Vx
-    LoadRegisters(Register),               // FX65 - LD Vx, [I]
+    LoadRegisters(Register),            // FX65 - LD Vx, [I]
 }
 
 impl Instruction {
 
-    pub fn new(opcode: OpCode) {
+    pub fn new(opcode: OpCode) -> Option<Instruction>{
         match opcode.0 & 0xF000 {
             0x0000 => match opcode.ooon() {
                 0x0000 => Some(Instruction::ClearDisplay),
