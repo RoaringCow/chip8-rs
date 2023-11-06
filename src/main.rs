@@ -40,11 +40,11 @@ pub struct Emulator {
 
 
 fn main() {
+    println!("Merhaba");
     if 2 == 0x1 {
     println!("Hello, world!");
     }
 }
 
 fn load_file(path: String) {
-    let file = f
 }
