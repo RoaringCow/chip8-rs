@@ -1,15 +1,12 @@
-//use std::fs::File;
-//use std::io::Read;
+use std::io::Read;
+use std::fs::File;
+use std::io;
+use std::fmt;
+
 
 mod instruction;
 use crate::instruction::*;
 
-const MEMORY_SIZE: usize = 4096;
-const REG_COUNT: usize = 16;
-const STACK_SIZE: usize = 16;
-const SCREEN_WIDTH: usize = 64;
-const SCREEN_HEIGHT: usize = 32;
-const NUM_KEYS: usize = 0; //????
 
 /*
     Memory: 4KiB
@@ -28,30 +25,62 @@ const NUM_KEYS: usize = 0; //????
 
 
 pub struct Emulator {
-    pub memory: [u8; MEMORY_SIZE], // 4K memory; 0x000 - 0xFFF
-    pub v: [u8; REG_COUNT],    // 16 8-bit registers; 0x0 - 0xF
-    pub i: u16,                    // Memory address register
-    pub pc: u16,                   // Program counter
-    pub stack: [u16; STACK_SIZE],  // Stack; 16 levels of 16-bit values
-    pub sp: u8,                    // Stack pointer; points to the top of the stack
-    pub dt: u8,                    // Delay timer
-    pub st: u8,                    // Sound timer
-    pub draw_flag: bool,           // Draw flag
-    pub screen: [bool; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize], // Screen
-    pub keypad: [bool; NUM_KEYS],  // Keys
+    pub memory: [u8; 4096],      // 4K memory; 0x000 - 0xFFF
+    v: [u8; 16],             // 16 8-bit registers; 0x0 - 0xF
+    i: u16,                         // Memory address register
+    pc: u16,                        // Program counter
+    stack: [u16; 16],       // Stack; 16 levels of 16-bit values
+    sp: u8,                         // Stack pointer; points to the top of the stack
+    delay_timer: u8,
+    sound_timer: u8,
+    //display: [bool; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+    //keyboard: ,
 }
 
+impl Emulator {
+
+    pub fn new() -> Emulator {
+        let mut emulator = Emulator {
+            memory: [0; 4096],
+            v: [0; 16],
+            i: 0x200,
+            pc: 0x200,
+            stack: [0; 16],
+            sp: 0,
+            delay_timer: 0,
+            sound_timer: 0,
+            //display: Display::new(),
+            //keyboard: Keyboard::new(),
+        };
 
 
+        emulator
+    }
 
 
+    pub fn read_rom<P: std::convert::AsRef<std::path::Path>>(mut self, path: P) -> io::Result<Emulator> {
+        let file = File::open(path)?;
+        for (location, byte) in file.bytes().enumerate() {
+            self.memory[0x200 + location] = byte?;
+        }
+        Ok(self)
+    }
 
-fn main() {
+}
+
+// "/home/ersan/Downloads/octojam1title.ch8"
+
+
+fn main() -> io::Result<()> {
     let x: OpCode = instruction::OpCode(0x8000);
-    println!("{:?}", Instruction::new(x));
-}
 
-fn load_file(path: String) {
-}
+    let emulator = Emulator::new();
+    
+    let emulator = emulator.read_rom("/home/ersan/Downloads/octojam1title.ch8")?;
+    for byte in &emulator.memory {
+        println!("{}", byte);
+    }
 
+    Ok(())
+}
 
