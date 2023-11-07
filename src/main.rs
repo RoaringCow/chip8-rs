@@ -66,6 +66,18 @@ impl Emulator {
         Ok(self)
     }
 
+    fn read_instruction(&self) -> Option<Instruction> {
+        let opcode = (self.memory[self.pc as usize] as u16) | (self.memory[(self.pc + 1) as usize] as u16);
+        // 16 bit oku
+        Instruction::new(opcode)
+    }
+
+    fn run_instruction(&self) {
+        self.pc = match {
+            
+        }
+    }
+
 }
 
 // "/home/ersan/Downloads/octojam1title.ch8"
