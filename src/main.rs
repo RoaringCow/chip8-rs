@@ -1,7 +1,6 @@
 use std::io::Read;
 use std::fs::File;
 use std::io;
-use std::fmt;
 
 
 mod instruction;
@@ -67,17 +66,74 @@ impl Emulator {
     }
 
     fn read_instruction(&self) -> Option<Instruction> {
-        let opcode = (self.memory[self.pc as usize] as u16) | (self.memory[(self.pc + 1) as usize] as u16);
+        let opcode: OpCode = instruction::OpCode((self.memory[self.pc as usize] as u16) | (self.memory[(self.pc + 1) as usize] as u16));
         // 16 bit oku
         Instruction::new(opcode)
     }
 
-    fn run_instruction(&self) {
-        self.pc = match {
-            
-        }
-    }
+    fn run_instruction(&mut self, instruction: Instruction) {
+        self.pc = match instruction{
+            //Instruction::ClearDisplay => todo!(), //clear display
+            Instruction::Return => {
+                // Set the program counter to return position
+                self.sp -= 1;
+                self.stack[self.sp as usize] + 2
+            }
+            Instruction::Jump(address) => address,
+            Instruction::Call(address) => {
+                // go to an adress but to return.
+                self.stack[self.sp as usize] = self.pc as u16;
+                self.sp += 1;
+                address
+            }
+            Instruction::SkipIfEqualsByte(register, value) => {
+                if self.v[register] == value {
+                    self.pc + 4
+                } else {
+                    self.pc + 2
+                }
+            }
+            Instruction::SkipIfNotEqualsByte(register, value) => {
+                if self.v[register] != value {
+                    self.pc + 4
+                } else {
+                    self.pc + 2
+                }
+            },
+            Instruction::SkipIfEqual(regx, regy) => {
+                if self.v[regx] == self.v[regy] {
+                    self.pc + 4
+                } else {
+                    self.pc + 2
+                }
+            },
+            Instruction::LoadByte(register, value) => {
+                self.v[register] = value;
+                self.pc + 2
+            },
+            Instruction::AddByte(register, value) => {
+                self.v[register] = self.v[register] + value;
+                self.pc + 2
+            },
+            Instruction::Move(regx, regy) => {
+                self.v[regx] = self.v[regy];
+                self.pc + 2
+            }
 
+
+            Move(Register, Register),           // 8XY0 - LD Vx, Vy
+            Or(Register, Register),             // 8XY1 - OR Vx, Vy
+            And(Register, Register),            // 8XY2 - AND Vx, Vy
+            Xor(Register, Register),            // 8XY3 - XOR Vx, Vy
+            Add(Register, Register),          // 8XY4 - ADD Vx, Vy
+            Sub(Register, Register),          // 8XY5 - SUB Vx, Vy
+            ShiftRight(Register),               // 8XY6 - SHR Vx {, Vy}
+            ReverseSub(Register, Register),          // 8XY7 - SUBN Vx, Vy
+            ShiftLeft(Register),                // 8XYE - SHL Vx {, Vy}
+
+        };
+
+    }
 }
 
 // "/home/ersan/Downloads/octojam1title.ch8"
