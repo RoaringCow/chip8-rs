@@ -132,8 +132,8 @@ impl Emulator {
                 self.pc + 2
             },
             Instruction::Add(regx, regy) => {
-                let (res, overflow) = self.v[x].overflowing_add(self.v[y]);
-                if self.v[regx] + self.v[regy] > 255 { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
+                // Will probably change this line from converting into u16 at some point.
+                if self.v[regx] as u16 + self.v[regy] as u16 > 255 { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
                 self.v[regx] += self.v[regy];
                 self.pc + 2
             },
@@ -142,18 +142,13 @@ impl Emulator {
                 self.v[regx] -= self.v[regy];
                 self.pc + 2
             },
-            Instruction::ShiftRight(register) {
-                self.v[0x0F] = self.v[x] & 0x1;
-                self.v[x] >>= 1;
+            Instruction::ShiftRight(register) => {
+                self.v[0x0F] = self.v[register] & 0x1;
+                self.v[register] >>= 1;
                 self.pc + 2
             },
-
-            Add(Register, Register),          // 8XY4 - ADD Vx, Vy
-            Sub(Register, Register),          // 8XY5 - SUB Vx, Vy
-            ShiftRight(Register),               // 8XY6 - SHR Vx {, Vy}
-            ReverseSub(Register, Register),          // 8XY7 - SUBN Vx, Vy
-            ShiftLeft(Register),                // 8XYE - SHL Vx {, Vy}
-
+            // TODO
+            _ => 16,
         };
 
     }
