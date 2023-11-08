@@ -118,13 +118,36 @@ impl Emulator {
             Instruction::Move(regx, regy) => {
                 self.v[regx] = self.v[regy];
                 self.pc + 2
-            }
+            },
+            Instruction::Or(regx, regy) => {
+                self.v[regx] = self.v[regx] | self.v[regy];
+                self.pc + 2
+            },
+            Instruction::And(regx, regy) => {
+                self.v[regx] = self.v[regx] & self.v[regy];
+                self.pc + 2
+            },
+            Instruction::Xor(regx, regy) => {
+                self.v[regx] = self.v[regx] ^ self.v[regy];
+                self.pc + 2
+            },
+            Instruction::Add(regx, regy) => {
+                let (res, overflow) = self.v[x].overflowing_add(self.v[y]);
+                if self.v[regx] + self.v[regy] > 255 { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
+                self.v[regx] += self.v[regy];
+                self.pc + 2
+            },
+            Instruction::Sub(regx, regy) => {
+                if self.v[regx] > self.v[regy] { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
+                self.v[regx] -= self.v[regy];
+                self.pc + 2
+            },
+            Instruction::ShiftRight(register) {
+                self.v[0x0F] = self.v[x] & 0x1;
+                self.v[x] >>= 1;
+                self.pc + 2
+            },
 
-
-            Move(Register, Register),           // 8XY0 - LD Vx, Vy
-            Or(Register, Register),             // 8XY1 - OR Vx, Vy
-            And(Register, Register),            // 8XY2 - AND Vx, Vy
-            Xor(Register, Register),            // 8XY3 - XOR Vx, Vy
             Add(Register, Register),          // 8XY4 - ADD Vx, Vy
             Sub(Register, Register),          // 8XY5 - SUB Vx, Vy
             ShiftRight(Register),               // 8XY6 - SHR Vx {, Vy}
