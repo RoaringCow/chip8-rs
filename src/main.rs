@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::fs::File;
 use std::io;
+use rand::Rng;
 
 
 mod instruction;
@@ -147,7 +148,34 @@ impl Emulator {
                 self.v[register] >>= 1;
                 self.pc + 2
             },
-            // TODO
+            Instruction::ReverseSub(regx, regy) => {
+                if self.v[regy] > self.v[regx] { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
+                self.v[regx] = self.v[regy] - self.v[regx];
+                self.pc + 2
+            },
+            Instruction::ShiftLeft(register) => {
+                self.v[0x0F] = self.v[register] & 128; // Most significant bit.
+                self.v[register] <<= 1;
+                self.pc + 2
+            },
+            Instruction::SkipIfNotEqual(regx, regy) => {
+                if self.v[regx] != self.v[regy] {
+                    self.pc + 4
+                } else {
+                    self.pc + 2
+                }
+            },
+            Instruction::LoadI(address) => {
+                self.i = address;
+                self.pc + 2
+            },
+            Instruction::JumpPlusZero(addr) => addr + (self.v[0] as u16),
+
+            Instruction::Random(x, val) => {
+                self.v[x] = val & rand::random::<u8>();
+                self.pc + 2
+            },
+
             _ => 16,
         };
 
