@@ -9,6 +9,11 @@ use crate::instruction::*;
 mod display;
 use crate::display::*;
 
+
+use sdl2::event::Event;
+use sdl2::{self, keyboard::Keycode};
+
+
 const SCREEN_WIDTH: usize = 64;
 const SCREEN_HEIGHT: usize = 32;
 
@@ -108,7 +113,7 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: [[true; SCREEN_WIDTH]; SCREEN_HEIGHT],
-            //keyboard: Keyboard::new(),
+            keyboard: [],
         };    
 
 
@@ -239,41 +244,29 @@ impl Emulator {
                 let coordy = self.v[regy] as usize;
 
                 let mut collision = false;
-                
-                for x in 0..value {
 
-                    // Display the rows and collumns of char
-                    for row in 0..value {
-                        let pixels = self.memory[(self.i + row as u16) as usize];
-                        for col in 0..8 {
-                            if (pixels & (0x80 >> col)) != 0 {
-                                let x = (coordx + col) % SCREEN_WIDTH as usize;
-                                let y = (coordy + row as usize) % SCREEN_HEIGHT as usize;
-                                // to wrap around
-                                collision |= self.display[y][x];
-                                self.display[y][x] ^= true;
-                            }
+
+                // Display the rows and collumns of char
+                for row in 0..value {
+                    let pixels = self.memory[(self.i + row as u16) as usize];
+                    for col in 0..8 {
+                        if (pixels & (0x80 >> col)) != 0 {
+                            let x = (coordx + col) % SCREEN_WIDTH as usize;
+                            let y = (coordy + row as usize) % SCREEN_HEIGHT as usize;
+                            // to wrap around
+                            collision |= self.display[y][x];
+                            self.display[y][x] ^= true;
                         }
                     }
                 }
                 
                 self.v[0xF] = collision as u8;
                 self.pc + 2
+            },
+            
+            Instruction::SkipIfPressed(x) => {
+
             }
-
-
-                /*
-                Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
-
-                The interpreter reads n bytes from memory, starting at the address stored in I. 
-                These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-                Sprites are XORed onto the existing screen. 
-                If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
-                If the sprite is positioned so part of it is outside the coordinates of the display, 
-                it wraps around to the opposite side of the screen. 
-                See instruction 8xy3 for more information on XOR, and section 2.4, 
-                Display, for more information on the Chip-8 screen and sprites.
-                */
             _ => 16,
 
 
@@ -296,3 +289,27 @@ impl Emulator {
 }    
 
 // "/home/ersan/Downloads/octojam1title.ch8"
+
+
+
+fn map_sdl_keys(key: Keycode) -> Option<u8> {
+    match key {
+		Keycode::Num1 => Some(0x1),
+		Keycode::Num2 => Some(0x2),
+		Keycode::Num3 => Some(0x3),
+		Keycode::Num4 => Some(0xC),
+		Keycode::Q => Some(0x4),
+		Keycode::W => Some(0x5),
+		Keycode::E => Some(0x6),
+		Keycode::R => Some(0xD),
+		Keycode::A => Some(0x7),
+		Keycode::S => Some(0x8),
+		Keycode::D => Some(0x9),
+		Keycode::F => Some(0xE),
+		Keycode::Z => Some(0xA),
+		Keycode::X => Some(0x0),
+		Keycode::C => Some(0xB),
+		Keycode::V => Some(0xF),
+		_ => None,
+	}
+}
