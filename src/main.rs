@@ -131,7 +131,7 @@ impl Emulator {
     }    
 
     fn run_instruction(&mut self, instruction: Instruction) {
-        self.pc = match instruction{
+        self.pc = match instruction {
             //Instruction::ClearDisplay => todo!(), //clear display
             Instruction::Return => {
                 // Set the program counter to return position
@@ -235,9 +235,45 @@ impl Emulator {
             },    
 
             Instruction::Draw(regx, regy, value) => {
-                println!("todo!");
-                16
-            },
+                let coordx = self.v[regx] as usize;
+                let coordy = self.v[regy] as usize;
+
+                let mut collision = false;
+                
+                for x in 0..value {
+
+                    // Display the rows and collumns of char
+                    for row in 0..value {
+                        let pixels = self.memory[(self.i + row as u16) as usize];
+                        for col in 0..8 {
+                            if (pixels & (0x80 >> col)) != 0 {
+                                let x = (coordx + col) % SCREEN_WIDTH as usize;
+                                let y = (coordy + row as usize) % SCREEN_HEIGHT as usize;
+                                // to wrap around
+                                collision |= self.display[y][x];
+                                self.display[y][x] ^= true;
+                            }
+                        }
+                    }
+                }
+                
+                self.v[0xF] = collision as u8;
+                self.pc + 2
+            }
+
+
+                /*
+                Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+
+                The interpreter reads n bytes from memory, starting at the address stored in I. 
+                These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
+                Sprites are XORed onto the existing screen. 
+                If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
+                If the sprite is positioned so part of it is outside the coordinates of the display, 
+                it wraps around to the opposite side of the screen. 
+                See instruction 8xy3 for more information on XOR, and section 2.4, 
+                Display, for more information on the Chip-8 screen and sprites.
+                */
             _ => 16,
 
 
@@ -260,5 +296,3 @@ impl Emulator {
 }    
 
 // "/home/ersan/Downloads/octojam1title.ch8"
-
-

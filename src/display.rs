@@ -59,7 +59,7 @@ impl Display {
                     self.canvas.set_draw_color(SDL_BLANK_COLOR);
                 }
                 self.canvas
-                    .fill_rect(Rect::new(x, y, 1, 1))
+                    .fill_rect(Rect::new(x as i32, y as i32, 1, 1))
                     .unwrap();
             }
 
