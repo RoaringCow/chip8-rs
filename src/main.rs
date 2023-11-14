@@ -113,7 +113,7 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: [[true; SCREEN_WIDTH]; SCREEN_HEIGHT],
-            keyboard: [],
+            //keyboard: [],
         };    
 
 
@@ -263,10 +263,11 @@ impl Emulator {
                 self.v[0xF] = collision as u8;
                 self.pc + 2
             },
-            
+            /*
             Instruction::SkipIfPressed(x) => {
-
+                
             }
+            */
             _ => 16,
 
 
