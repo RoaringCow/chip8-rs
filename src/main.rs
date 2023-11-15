@@ -9,9 +9,12 @@ use crate::instruction::*;
 mod display;
 use crate::display::*;
 
+extern crate sdl2;
 
+use sdl2::pixels::Color;
 use sdl2::event::Event;
-use sdl2::{self, keyboard::Keycode};
+use sdl2::keyboard::Keycode;
+use std::time::Duration;
 
 
 const SCREEN_WIDTH: usize = 64;
@@ -55,13 +58,17 @@ const CHARACTERS: [[u8; 5]; 16] = [
     
 
 fn main() -> io::Result<()> {
-    let x: OpCode = instruction::OpCode(0x8000);
 
-    let emulator = Emulator::new();
+    let mut emulator = Emulator::new();
     
-    let emulator = emulator.read_rom("/home/ersan/Downloads/octojam1title.ch8")?;
-    for byte in &emulator.memory {
-        //println!("{}", byte);
+    emulator = emulator.read_rom("/home/ersan/Downloads/octojam1title.ch8")?;
+    
+    
+    for a in 0..1196 {
+        //println!("{:?}  {}", emulator.read_instruction(), emulator.pc);
+        let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
+        print!("{}    {}  ", emulator.pc, byte);
+        emulator.read_instruction();
     }
 
     /*
@@ -77,9 +84,6 @@ fn main() -> io::Result<()> {
         println!();
     }
     */
-
-
-    
 
 
     Ok(())
@@ -104,7 +108,7 @@ impl Emulator {
 
     pub fn new() -> Emulator {
         let mut emulator = Emulator {
-            memory: [0; 4096],
+            memory: [0x000E; 4096],
             v: [0; 16],
             i: 0x200,
             pc: 0x200,
@@ -125,13 +129,15 @@ impl Emulator {
         let file = File::open(path)?;
         for (location, byte) in file.bytes().enumerate() {
             self.memory[0x200 + location] = byte?;
+            //println!("{}", self.memory[0x200 + location]);
         }    
         Ok(self)
     }    
 
-    fn read_instruction(&self) -> Option<Instruction> {
-        let opcode: OpCode = instruction::OpCode((self.memory[self.pc as usize] as u16) | (self.memory[(self.pc + 1) as usize] as u16));
+    fn read_instruction(&mut self) -> Option<Instruction> {
+        let opcode: OpCode = instruction::OpCode((self.memory[self.pc as usize] as u16) << 8 | (self.memory[(self.pc + 1) as usize] as u16));
         // 16 bit oku
+        self.pc += 2;
         Instruction::new(opcode)
     }    
 
@@ -142,21 +148,21 @@ impl Emulator {
                 // Set the program counter to return position
                 self.sp -= 1;
                 self.stack[self.sp as usize] + 2
-            }    
+            },
             Instruction::Jump(address) => address,
             Instruction::Call(address) => {
                 // go to an adress but to return.
                 self.stack[self.sp as usize] = self.pc as u16;
                 self.sp += 1;
                 address
-            }    
+            },  
             Instruction::SkipIfEqualsByte(register, value) => {
                 if self.v[register] == value {
                     self.pc + 4
                 } else {
                     self.pc + 2
                 }    
-            }    
+            },    
             Instruction::SkipIfNotEqualsByte(register, value) => {
                 if self.v[register] != value {
                     self.pc + 4
@@ -293,7 +299,7 @@ impl Emulator {
 
 
 
-fn map_sdl_keys(key: Keycode) -> Option<u8> {
+fn map_keys(key: Keycode) -> Option<u8> {
     match key {
 		Keycode::Num1 => Some(0x1),
 		Keycode::Num2 => Some(0x2),
