@@ -61,14 +61,15 @@ fn main() -> io::Result<()> {
 
     let mut emulator = Emulator::new();
     
-    emulator = emulator.read_rom("/home/ersan/Downloads/octojam1title.ch8")?;
+    emulator = emulator.read_rom("/home/ersan/Downloads/1dcell.ch8")?;
     
     
     for a in 0..1196 {
-        //println!("{:?}  {}", emulator.read_instruction(), emulator.pc);
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
-        print!("{}    {}  ", emulator.pc, byte);
-        emulator.read_instruction();
+        //println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
+        emulator.run_instruction(emulator.read_instruction());
+        println!("{}    {}  ", emulator.pc, byte);
+        
     }
 
     /*
@@ -129,123 +130,122 @@ impl Emulator {
         let file = File::open(path)?;
         for (location, byte) in file.bytes().enumerate() {
             self.memory[0x200 + location] = byte?;
-            //println!("{}", self.memory[0x200 + location]);
         }    
         Ok(self)
     }    
-
-    fn read_instruction(&mut self) -> Option<Instruction> {
+    
+    fn read_instruction(&self) -> Option<Instruction> {
         let opcode: OpCode = instruction::OpCode((self.memory[self.pc as usize] as u16) << 8 | (self.memory[(self.pc + 1) as usize] as u16));
         // 16 bit oku
-        self.pc += 2;
         Instruction::new(opcode)
     }    
 
-    fn run_instruction(&mut self, instruction: Instruction) {
+    fn run_instruction(&mut self, instruction: Option<Instruction>) {
+        print!("   {:?}    ", instruction);
         self.pc = match instruction {
             //Instruction::ClearDisplay => todo!(), //clear display
-            Instruction::Return => {
+            Some(Instruction::Return) => {
                 // Set the program counter to return position
                 self.sp -= 1;
                 self.stack[self.sp as usize] + 2
             },
-            Instruction::Jump(address) => address,
-            Instruction::Call(address) => {
+            Some(Instruction::Jump(address)) => address,
+            Some(Instruction::Call(address)) => {
                 // go to an adress but to return.
                 self.stack[self.sp as usize] = self.pc as u16;
                 self.sp += 1;
                 address
             },  
-            Instruction::SkipIfEqualsByte(register, value) => {
+            Some(Instruction::SkipIfEqualsByte(register, value)) => {
                 if self.v[register] == value {
                     self.pc + 4
                 } else {
                     self.pc + 2
                 }    
             },    
-            Instruction::SkipIfNotEqualsByte(register, value) => {
+            Some(Instruction::SkipIfNotEqualsByte(register, value)) => {
                 if self.v[register] != value {
                     self.pc + 4
                 } else {
                     self.pc + 2
                 }    
             },    
-            Instruction::SkipIfEqual(regx, regy) => {
+            Some(Instruction::SkipIfEqual(regx, regy)) => {
                 if self.v[regx] == self.v[regy] {
                     self.pc + 4
                 } else {
                     self.pc + 2
                 }    
             },    
-            Instruction::LoadByte(register, value) => {
+            Some(Instruction::LoadByte(register, value)) => {
                 self.v[register] = value;
                 self.pc + 2
             },    
-            Instruction::AddByte(register, value) => {
+            Some(Instruction::AddByte(register, value)) => {
                 self.v[register] = self.v[register] + value;
                 self.pc + 2
             },    
-            Instruction::Move(regx, regy) => {
+            Some(Instruction::Move(regx, regy)) => {
                 self.v[regx] = self.v[regy];
                 self.pc + 2
             },    
-            Instruction::Or(regx, regy) => {
+            Some(Instruction::Or(regx, regy)) => {
                 self.v[regx] = self.v[regx] | self.v[regy];
                 self.pc + 2
             },    
-            Instruction::And(regx, regy) => {
+            Some(Instruction::And(regx, regy))=> {
                 self.v[regx] = self.v[regx] & self.v[regy];
                 self.pc + 2
             },    
-            Instruction::Xor(regx, regy) => {
+            Some(Instruction::Xor(regx, regy)) => {
                 self.v[regx] = self.v[regx] ^ self.v[regy];
                 self.pc + 2
             },    
-            Instruction::Add(regx, regy) => {
+            Some(Instruction::Add(regx, regy)) => {
                 // Will probably change this line from converting into u16 at some point.
                 if self.v[regx] as u16 + self.v[regy] as u16 > 255 { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
                 self.v[regx] += self.v[regy];
                 self.pc + 2
             },    
-            Instruction::Sub(regx, regy) => {
+            Some(Instruction::Sub(regx, regy)) => {
                 if self.v[regx] > self.v[regy] { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
                 self.v[regx] -= self.v[regy];
                 self.pc + 2
             },    
-            Instruction::ShiftRight(register) => {
+            Some(Instruction::ShiftRight(register)) => {
                 self.v[0x0F] = self.v[register] & 0x1;
                 self.v[register] >>= 1;
                 self.pc + 2
             },    
-            Instruction::ReverseSub(regx, regy) => {
+            Some(Instruction::ReverseSub(regx, regy)) => {
                 if self.v[regy] > self.v[regx] { self.v[0x0F] = 1 } else { self.v[0x0F] = 0 }
                 self.v[regx] = self.v[regy] - self.v[regx];
                 self.pc + 2
             },    
-            Instruction::ShiftLeft(register) => {
+            Some(Instruction::ShiftLeft(register)) => {
                 self.v[0x0F] = self.v[register] & 128; // Most significant bit.
                 self.v[register] <<= 1;
                 self.pc + 2
             },    
-            Instruction::SkipIfNotEqual(regx, regy) => {
+            Some(Instruction::SkipIfNotEqual(regx, regy)) => {
                 if self.v[regx] != self.v[regy] {
                     self.pc + 4
                 } else {
                     self.pc + 2
                 }    
             },    
-            Instruction::LoadI(address) => {
+            Some(Instruction::LoadI(address)) => {
                 self.i = address;
                 self.pc + 2
             },    
-            Instruction::JumpPlusZero(addr) => addr + (self.v[0] as u16),
+            Some(Instruction::JumpPlusZero(addr)) => addr + (self.v[0] as u16),
 
-            Instruction::Random(x, val) => {
+            Some(Instruction::Random(x, val)) => {
                 self.v[x] = val & rand::random::<u8>();
                 self.pc + 2
             },    
 
-            Instruction::Draw(regx, regy, value) => {
+            Some(Instruction::Draw(regx, regy, value)) => {
                 let coordx = self.v[regx] as usize;
                 let coordy = self.v[regy] as usize;
 

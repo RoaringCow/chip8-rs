@@ -80,7 +80,6 @@ pub enum Instruction {
 impl Instruction {
 
     pub fn new(opcode: OpCode) -> Option<Instruction>{
-        println!("{:?}", opcode);
         match opcode.0 & 0xF000 {
             0x0000 => match opcode.ooon() {
                 0x0000 => Some(Instruction::ClearDisplay),
