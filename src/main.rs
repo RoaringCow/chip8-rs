@@ -63,9 +63,14 @@ fn main() -> io::Result<()> {
     
     emulator = emulator.read_rom("/home/ersan/Downloads/test2.ch8")?;
     
-    
-    for a in 0..10 {
+    let (mut display, sdl_context) = Display::new();
+
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    'running: loop {
+        // Emulator cycle
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
+        
         println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
         emulator.run_instruction(emulator.read_instruction());
         for y in &emulator.display{
@@ -74,8 +79,34 @@ fn main() -> io::Result<()> {
             }
             println!();
         }
+        // Handle events
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                // Handle key presses
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => {
+                    if let Some(key) = map_keys(key) {
+                        emulator.key_down(key);
+                    }
+                }
+                // Handle key releases
+                Event::KeyUp {
+                    keycode: Some(key), ..
+                } => {
+                    if let Some(key) = map_keys(key) {
+                        emulator.key_up(key);
+                    }
+                }
+                _ => {}
+            }
+        }
     }
-
 
 
     Ok(())
@@ -93,7 +124,7 @@ pub struct Emulator {
     delay_timer: u8,
     sound_timer: u8,
     display: [[bool; SCREEN_WIDTH];SCREEN_HEIGHT],
-    //keyboard: ,
+    keys: [bool; 16],
 }    
 
 impl Emulator {
@@ -109,13 +140,35 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: [[false; SCREEN_WIDTH]; SCREEN_HEIGHT],
-            //keyboard: [],
+            keys: [false; 16],
         };    
 
 
         emulator
     }    
 
+    pub fn key_down(&mut self, key: u8) {
+        self.keys[key as usize] = true;
+    }
+
+    pub fn key_up(&mut self, key: u8) {
+        self.keys[key as usize] = false;
+    }
+    pub fn timer_ticks(&mut self) {
+        // Decrement delay timer if it's greater than zero every tick
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        // Decrement sound timer if it's greater than zero every tick
+        // If it's zero, play the "beep" sound
+        if self.sound_timer > 0 {
+            if self.sound_timer == 1 {
+                println!("BEEP");
+            }
+            self.sound_timer -= 1;
+        }
+    }
 
     pub fn read_rom<P: std::convert::AsRef<std::path::Path>>(mut self, path: P) -> io::Result<Emulator> {
         let file = File::open(path)?;
@@ -260,19 +313,43 @@ impl Emulator {
                 self.v[0xF] = collision as u8;
                 self.pc + 2
             },
-            /*
-            Instruction::SkipIfPressed(x) => {
+
+            Some(Instruction::SkipIfPressed(x)) => {
+                let key = self.v[x];
+                if self.keys[key as usize] {
+                    self.pc + 2
+                }else {
+                   self.pc
+                }
+            },
+
+            Some(Instruction::SkipIfNotPressed(x)) => {
+                let key = self.v[x];
+                if !self.keys[key as usize] {
+                    self.pc + 2
+                } else{
+                    self.pc
+                }
+            },
+
+            Some(Instruction::LoadDelayTimer(register)) => {
+                self.delay_timer = self.v[register];
+                self.pc + 2
+            },
+            /* 
+            Some(Instruction::WaitForKeyPress(register)) => {
                 
-            }
+            },
             */
+
+
+
+
             _ => 16,
 
 
             
             /*
-            SkipIfPressed(Register),           // EX9E - SKP Vx
-            SkipIfNotPressed(Register),        // EXA1 - SKNP Vx
-
             LoadDelayTimer(Register),           // FX07 - LD Vx, DT
             WaitForKeyPress(Register),          // FX0A - LD Vx, K
             SetDelayTimer(Register),            // FX15 - LD DT, Vx
