@@ -61,30 +61,21 @@ fn main() -> io::Result<()> {
 
     let mut emulator = Emulator::new();
     
-    emulator = emulator.read_rom("/home/ersan/Downloads/1dcell.ch8")?;
+    emulator = emulator.read_rom("/home/ersan/Downloads/test2.ch8")?;
     
     
-    for a in 0..1196 {
+    for a in 0..10 {
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
-        //println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
+        println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
         emulator.run_instruction(emulator.read_instruction());
-        println!("{}    {}  ", emulator.pc, byte);
-        
-    }
-
-    /*
-    for i in 0..16 {
-        for j in 0..5 {
-            for y in (0..8).rev() {
-                let bit = (CHARACTERS[i][j] >> y) & 1;
-                print!("{}", if bit == 1 {"$"} else {" "});
+        for y in &emulator.display{
+            for x in y {
+                if !!x {print!("$");} else {print!(" ");}
             }
             println!();
-            //println!("{:b}", CHARACTERS[i][j]);
         }
-        println!();
     }
-    */
+
 
 
     Ok(())
@@ -117,7 +108,7 @@ impl Emulator {
             sp: 0,
             delay_timer: 0,
             sound_timer: 0,
-            display: [[true; SCREEN_WIDTH]; SCREEN_HEIGHT],
+            display: [[false; SCREEN_WIDTH]; SCREEN_HEIGHT],
             //keyboard: [],
         };    
 
@@ -141,9 +132,9 @@ impl Emulator {
     }    
 
     fn run_instruction(&mut self, instruction: Option<Instruction>) {
-        print!("   {:?}    ", instruction);
+        // println!("{}   {}   {}   {}   {}   {}   {}   {}   {}   {}   : {}  {:?}", self.v[0], self.v[1], self.v[2], self.v[3], self.v[4], self.v[5], self.v[6], self.v[7], self.v[13], self.v[14], self.pc, instruction);
         self.pc = match instruction {
-            //Instruction::ClearDisplay => todo!(), //clear display
+            Some(Instruction::ClearDisplay) => {self.display = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT]; self.pc + 2}, //clear display
             Some(Instruction::Return) => {
                 // Set the program counter to return position
                 self.sp -= 1;
