@@ -2,6 +2,7 @@ use std::io::Read;
 use std::fs::File;
 use std::io;
 use rand::random;
+use sdl2::sys::register_t;
 
 mod instruction;
 use crate::instruction::*;
@@ -72,6 +73,12 @@ fn main() -> io::Result<()> {
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
         
         println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
+
+        // This part may lead to some issues. (The subtract 4 part)
+        // But otherwise it would just give index out of bounds error.
+        if emulator.pc > emulator.memory.len() as u16 - 4 {
+            break;
+        }
         emulator.run_instruction(emulator.read_instruction());
         for y in &emulator.display{
             for x in y {
@@ -131,7 +138,7 @@ impl Emulator {
 
     pub fn new() -> Emulator {
         let mut emulator = Emulator {
-            memory: [0x000E; 4096],
+            memory: [0x0; 4096],
             v: [0; 16],
             i: 0x200,
             pc: 0x200,
@@ -333,31 +340,69 @@ impl Emulator {
             },
 
             Some(Instruction::LoadDelayTimer(register)) => {
+                self.v[register] = self.delay_timer;
+                self.pc + 2
+            },
+            
+            Some(Instruction::WaitForKeyPress(register)) => {
+                let mut pressed = false;
+                for key in &self.keys {
+                    if !!key {
+                        pressed = true;
+                    }
+                }
+                if pressed {
+                    self.pc + 2
+                }else {
+                    self.pc
+                }
+            },
+
+            Some(Instruction::SetDelayTimer(register)) => {
                 self.delay_timer = self.v[register];
                 self.pc + 2
             },
-            /* 
-            Some(Instruction::WaitForKeyPress(register)) => {
-                
+
+            Some(Instruction::SetSoundTimer(register)) => {
+                self.sound_timer = self.v[register];
+                self.pc + 2
             },
-            */
-
-
-
-
-            _ => 16,
-
-
             
-            /*
-            LoadDelayTimer(Register),           // FX07 - LD Vx, DT
-            WaitForKeyPress(Register),          // FX0A - LD Vx, K
-            SetDelayTimer(Register),            // FX15 - LD DT, Vx
-            SetSoundTimer(Register),            // FX18 - LD ST, Vx
-            AddI(Register),                     // FX1E - ADD I, Vx
-            LoadSprite(Register),               // FX29 - LD F, Vx
-            _ => 16,
-            */
+            Some(Instruction::AddI(register)) => {
+                self.i += self.v[register] as u16;
+                self.pc + 2
+            },
+
+            Some(Instruction::LoadSprite(register)) => {
+                self.i = self.v[register] as u16 * 5;
+                self.pc + 2
+            },
+
+            Some(Instruction::StoreBCD(register)) => {
+                self.memory[self.i as usize] = self.v[register] / 100; // hundreds
+                self.memory[self.i as usize + 1] = (self.v[register] / 10) % 10; // tens
+                self.memory[self.i as usize + 2] = (self.v[register] % 100) % 10; // ones
+                self.pc + 2
+            },
+
+            Some(Instruction::StoreRegisters(register)) => {
+                for i in 0..=register {
+                    self.memory[self.i as usize + i] = self.v[i];
+                }
+                self.pc + 2
+            },
+
+            Some(Instruction::LoadRegisters(register)) => {
+                for i in 0..=register {
+                    self.v[i] = self.memory[self.i as usize + i];
+                }
+                self.pc + 2
+            },
+
+            None => {
+                eprintln!("Unsupported instruction: {:?}", instruction);
+                self.pc
+            }
         };    
 
     }    
