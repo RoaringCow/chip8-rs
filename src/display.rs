@@ -31,8 +31,8 @@ impl Display {
         let window = video_subsystem
             .window(
                 "CHIP-8 Emulator",
-                SCREEN_WIDTH.try_into().unwrap(),
-                SCREEN_HEIGHT.try_into().unwrap(),
+                (SCREEN_WIDTH * 10).try_into().unwrap(),
+                (SCREEN_HEIGHT * 10).try_into().unwrap(),
             )
             .position_centered()
             .build()
@@ -59,7 +59,7 @@ impl Display {
                     self.canvas.set_draw_color(SDL_BLANK_COLOR);
                 }
                 self.canvas
-                    .fill_rect(Rect::new(x as i32, y as i32, 1, 1))
+                    .fill_rect(Rect::new(x as i32 * 10, y as i32 * 10, 10, 10))
                     .unwrap();
             }
 

@@ -22,6 +22,7 @@ const SCREEN_WIDTH: usize = 64;
 const SCREEN_HEIGHT: usize = 32;
 
 
+
 const CHARACTERS: [[u8; 5]; 16] = [
     [0xF0, 0x90, 0x90, 0x90, 0xF0],
     [0x20, 0x60, 0x20, 0x20, 0x70],
@@ -62,7 +63,7 @@ fn main() -> io::Result<()> {
 
     let mut emulator = Emulator::new();
     
-    emulator = emulator.read_rom("/home/ersan/Downloads/test2.ch8")?;
+    emulator = emulator.read_rom("/home/ersan/Downloads/life.ch8")?;
     
     let (mut display, sdl_context) = Display::new();
 
@@ -72,20 +73,27 @@ fn main() -> io::Result<()> {
         // Emulator cycle
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
         
-        println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
-
+        
         // This part may lead to some issues. (The subtract 4 part)
         // But otherwise it would just give index out of bounds error.
         if emulator.pc > emulator.memory.len() as u16 - 4 {
             break;
         }
+        
+        //println!("{:?}    {}    {}  ", emulator.read_instruction(),  emulator.pc, byte);
+        
         emulator.run_instruction(emulator.read_instruction());
+        emulator.timer_ticks();
+        
+        /*
         for y in &emulator.display{
             for x in y {
                 if !!x {print!("$");} else {print!(" ");}
             }
             println!();
         }
+        */
+        
         // Handle events
         for event in event_pump.poll_iter() {
             match event {
@@ -113,6 +121,13 @@ fn main() -> io::Result<()> {
                 _ => {}
             }
         }
+        if emulator.draw_flag {
+            display.draw_screen(&emulator.display);
+        }
+        
+        // adjust as needed
+        std::thread::sleep(std::time::Duration::from_micros(1000));
+
     }
 
 
@@ -132,6 +147,7 @@ pub struct Emulator {
     sound_timer: u8,
     display: [[bool; SCREEN_WIDTH];SCREEN_HEIGHT],
     keys: [bool; 16],
+    draw_flag: bool,
 }    
 
 impl Emulator {
@@ -147,7 +163,8 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: [[false; SCREEN_WIDTH]; SCREEN_HEIGHT],
-            keys: [false; 16],
+            keys: [true; 16],
+            draw_flag: true,
         };    
 
 
@@ -167,8 +184,6 @@ impl Emulator {
             self.delay_timer -= 1;
         }
 
-        // Decrement sound timer if it's greater than zero every tick
-        // If it's zero, play the "beep" sound
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
                 println!("BEEP");
@@ -346,9 +361,11 @@ impl Emulator {
             
             Some(Instruction::WaitForKeyPress(register)) => {
                 let mut pressed = false;
-                for key in &self.keys {
+                for (i, &key) in self.keys.iter().enumerate() {
                     if !!key {
+                        self.v[register] = i as u8;
                         pressed = true;
+                        break;
                     }
                 }
                 if pressed {
