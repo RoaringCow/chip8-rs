@@ -63,7 +63,9 @@ fn main() -> io::Result<()> {
 
     let mut emulator = Emulator::new();
     
-    emulator = emulator.read_rom("/home/ersan/Downloads/life.ch8")?;
+    emulator.setup_noop();
+    
+    emulator = emulator.read_rom("/home/ersan/Downloads/test2.ch8")?;
     
     let (mut display, sdl_context) = Display::new();
 
@@ -72,7 +74,7 @@ fn main() -> io::Result<()> {
     'running: loop {
         // Emulator cycle
         let byte = (emulator.memory[emulator.pc as usize] as u16)  << 8 | (emulator.memory[(emulator.pc + 1) as usize] as u16); 
-        
+        println!("{:b}", byte);
         
         // This part may lead to some issues. (The subtract 4 part)
         // But otherwise it would just give index out of bounds error.
@@ -85,14 +87,14 @@ fn main() -> io::Result<()> {
         emulator.run_instruction(emulator.read_instruction());
         emulator.timer_ticks();
         
-        /*
+        
         for y in &emulator.display{
             for x in y {
                 if !!x {print!("$");} else {print!(" ");}
             }
             println!();
         }
-        */
+        
         
         // Handle events
         for event in event_pump.poll_iter() {
@@ -126,7 +128,7 @@ fn main() -> io::Result<()> {
         }
         
         // adjust as needed
-        std::thread::sleep(std::time::Duration::from_micros(1000));
+        std::thread::sleep(std::time::Duration::from_micros(10000));
 
     }
 
@@ -163,13 +165,22 @@ impl Emulator {
             delay_timer: 0,
             sound_timer: 0,
             display: [[false; SCREEN_WIDTH]; SCREEN_HEIGHT],
-            keys: [true; 16],
-            draw_flag: true,
+            keys: [false; 16],
+            draw_flag: false,
         };    
 
 
         emulator
     }    
+
+
+    // This is my touch to chip8
+    pub fn setup_noop(&mut self){
+        for pos in (0..self.memory.len()).step_by(2){
+            self.memory[pos] = 0xF0;
+            self.memory[pos + 1] = 0x69;
+        }
+    }
 
     pub fn key_down(&mut self, key: u8) {
         self.keys[key as usize] = true;
@@ -209,6 +220,8 @@ impl Emulator {
     fn run_instruction(&mut self, instruction: Option<Instruction>) {
         // println!("{}   {}   {}   {}   {}   {}   {}   {}   {}   {}   : {}  {:?}", self.v[0], self.v[1], self.v[2], self.v[3], self.v[4], self.v[5], self.v[6], self.v[7], self.v[13], self.v[14], self.pc, instruction);
         self.draw_flag = false;
+
+        //self.display = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
         self.pc = match instruction {
             Some(Instruction::ClearDisplay) => {self.display = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT]; self.pc + 2}, //clear display
             Some(Instruction::Return) => {
@@ -417,8 +430,12 @@ impl Emulator {
                 self.pc + 2
             },
 
+            Some(Instruction::NOOP) => {
+                self.pc + 2
+            },
+
             None => {
-                eprintln!("Unsupported instruction: {:?}", instruction);
+                eprintln!("Unsupported instruction: {:?}  {}", instruction, self.memory[self.pc as usize]);
                 self.pc
             }
         };    

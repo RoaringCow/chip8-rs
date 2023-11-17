@@ -75,6 +75,7 @@ pub enum Instruction {
     StoreBCD(Register),                 // FX33 - LD B, Vx
     StoreRegisters(Register),           // FX55 - LD [I], Vx
     LoadRegisters(Register),            // FX65 - LD Vx, [I]
+    NOOP,
 }
 
 impl Instruction {
@@ -132,6 +133,7 @@ impl Instruction {
                 0x0033 => Some(Instruction::StoreBCD(opcode.oxoo())),
                 0x0055 => Some(Instruction::StoreRegisters(opcode.oxoo())),
                 0x0065 => Some(Instruction::LoadRegisters(opcode.oxoo())),
+                0x0069 => Some(Instruction::NOOP),
                 _ => None,
             },
             _ => None,
