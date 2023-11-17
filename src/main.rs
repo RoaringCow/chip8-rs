@@ -208,6 +208,7 @@ impl Emulator {
 
     fn run_instruction(&mut self, instruction: Option<Instruction>) {
         // println!("{}   {}   {}   {}   {}   {}   {}   {}   {}   {}   : {}  {:?}", self.v[0], self.v[1], self.v[2], self.v[3], self.v[4], self.v[5], self.v[6], self.v[7], self.v[13], self.v[14], self.pc, instruction);
+        self.draw_flag = false;
         self.pc = match instruction {
             Some(Instruction::ClearDisplay) => {self.display = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT]; self.pc + 2}, //clear display
             Some(Instruction::Return) => {
@@ -316,7 +317,7 @@ impl Emulator {
                 let coordy = self.v[regy] as usize;
 
                 let mut collision = false;
-
+                self.draw_flag = true;
 
                 // Display the rows and collumns of char
                 for row in 0..value {
